@@ -58,6 +58,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Logo } from "@/components/logo";
 
 const SALUTATIONS = ["Mr.", "Mrs.", "Miss", "Dr.", "Rev."];
 const CIVIL_STATUSES = ["Single", "Married", "Divorced", "Widowed"];
@@ -170,7 +171,8 @@ export function RegistrationForm() {
 
   return (
     <Card className="w-full shadow-2xl transition-all duration-500 hover:shadow-primary/20">
-      <CardHeader>
+      <CardHeader className="flex flex-col items-center space-y-4">
+        <Logo />
         <CardTitle className="text-3xl font-bold text-center">Student Registration Portal</CardTitle>
       </CardHeader>
       <CardContent>
@@ -473,5 +475,3 @@ export function RegistrationForm() {
     </Card>
   );
 }
-
-    
