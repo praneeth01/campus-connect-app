@@ -234,6 +234,9 @@ export function RegistrationForm() {
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
+                            captionLayout="dropdown-buttons"
+                            fromYear={1950}
+                            toYear={new Date().getFullYear()}
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
