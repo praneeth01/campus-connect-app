@@ -62,6 +62,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/logo";
+import { sendOtp } from "@/ai/flows/send-otp-flow";
 
 const SALUTATIONS = ["Mr.", "Mrs.", "Miss", "Dr.", "Rev."];
 const CIVIL_STATUSES = ["Single", "Married", "Divorced", "Widowed"];
@@ -214,13 +215,22 @@ export function RegistrationForm() {
     }
   };
 
-  const handleVerifyPhone = () => {
+  const handleVerifyPhone = async () => {
     setIsVerifyingPhone(true);
-    setTimeout(() => {
-      setIsVerifyingPhone(false);
-      setOtpSent(true);
-      toast({ title: "OTP Sent", description: "An OTP has been sent to your mobile." });
-    }, 1500);
+    try {
+        const result = await sendOtp({ contactNo: contactNoValue });
+        if(result.success) {
+            setOtpSent(true);
+            toast({ title: "OTP Sent", description: "An OTP has been sent to your mobile." });
+        } else {
+             toast({ title: "Error", description: result.message, variant: "destructive" });
+        }
+    } catch (error) {
+        console.error("Error sending OTP", error);
+        toast({ title: "Error", description: "Could not send OTP. Please try again.", variant: "destructive" });
+    } finally {
+        setIsVerifyingPhone(false);
+    }
   };
 
   const handleVerifyOtp = () => {
