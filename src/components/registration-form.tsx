@@ -13,7 +13,6 @@ import {
   Briefcase,
   Users,
   Camera,
-  GraduationCap,
   BookOpen,
   ArrowRight,
   Loader2,
@@ -173,12 +172,14 @@ export function RegistrationForm() {
     <Card className="w-full shadow-2xl transition-all duration-500 hover:shadow-primary/20">
       <CardHeader>
         <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-                <GraduationCap className="h-8 w-8 text-primary" />
-            </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 200 100">
+            <g transform="translate(0, 0)">
+              <polygon points="0,50 50,0 50,25 25,50 50,75 50,100" style={{fill: "hsl(var(--primary))"}} />
+              <polygon points="55,0 105,0 105,100 55,100 55,75 80,75 80,25 55,25" style={{fill: "hsl(var(--accent))"}} />
+            </g>
+          </svg>
             <div>
-                <CardTitle className="text-3xl font-headline font-bold text-primary">CampusConnect</CardTitle>
-                <CardDescription className="text-lg">Student Registration Portal</CardDescription>
+                <CardDescription className="text-2xl font-bold">Student Registration Portal</CardDescription>
             </div>
         </div>
       </CardHeader>
@@ -482,3 +483,5 @@ export function RegistrationForm() {
     </Card>
   );
 }
+
+    
