@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle,
+  Phone,
 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -95,6 +96,7 @@ const formSchema = z
     nic: z.string().min(1, { message: "NIC number is required." }),
     passport: z.string().optional(),
     email: z.string().email({ message: "Please enter a valid email address." }),
+    contactNo: z.string().min(10, { message: "Please enter a valid contact number." }),
     photo: z.any().refine((files) => files?.length == 1, 'Photograph is required.'),
     courses: z
       .array(z.string())
@@ -110,9 +112,9 @@ export function RegistrationForm() {
   const photoInputRef = React.useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
   const [totalCost, setTotalCost] = React.useState(0);
-  const [isVerifyingEmail, setIsVerifyingEmail] = React.useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = React.useState(false);
   const [otpSent, setOtpSent] = React.useState(false);
-  const [isEmailVerified, setIsEmailVerified] = React.useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = React.useState(false);
   const [otp, setOtp] = React.useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -126,17 +128,18 @@ export function RegistrationForm() {
       nic: "",
       passport: "",
       email: "",
+      contactNo: "",
       courses: [],
     },
   });
 
-  const emailValue = form.watch('email');
+  const contactNoValue = form.watch('contactNo');
 
   React.useEffect(() => {
-    // Reset verification status if email changes
-    setIsEmailVerified(false);
+    // Reset verification status if phone number changes
+    setIsPhoneVerified(false);
     setOtpSent(false);
-  }, [emailValue]);
+  }, [contactNoValue]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -150,7 +153,7 @@ export function RegistrationForm() {
                 values[key] = value.split(',');
             } else if (key === 'photo') {
                 // don't set photo from params as it's a file object
-            } else if (key === 'isEmailVerified') {
+            } else if (key === 'isPhoneVerified') {
                 isVerifiedFromParams = value === 'true';
             }
             else {
@@ -176,7 +179,7 @@ export function RegistrationForm() {
         
         form.reset(values);
         if (isVerifiedFromParams) {
-          setIsEmailVerified(true);
+          setIsPhoneVerified(true);
         }
     }
   }, [searchParams, form]);
@@ -211,20 +214,20 @@ export function RegistrationForm() {
     }
   };
 
-  const handleVerifyEmail = () => {
-    setIsVerifyingEmail(true);
+  const handleVerifyPhone = () => {
+    setIsVerifyingPhone(true);
     setTimeout(() => {
-      setIsVerifyingEmail(false);
+      setIsVerifyingPhone(false);
       setOtpSent(true);
-      toast({ title: "OTP Sent", description: "An OTP has been sent to your email." });
+      toast({ title: "OTP Sent", description: "An OTP has been sent to your mobile." });
     }, 1500);
   };
 
   const handleVerifyOtp = () => {
     if (otp === "123456") { // Dummy OTP
-      setIsEmailVerified(true);
+      setIsPhoneVerified(true);
       setOtpSent(false);
-      toast({ title: "Success", description: "Email verified successfully.", variant: 'default' });
+      toast({ title: "Success", description: "Phone number verified successfully.", variant: 'default' });
     } else {
       toast({ title: "Error", description: "Invalid OTP. Please try again.", variant: "destructive" });
     }
@@ -247,7 +250,7 @@ export function RegistrationForm() {
         }
     });
 
-    formData.append('isEmailVerified', 'true');
+    formData.append('isPhoneVerified', 'true');
 
     router.push(`/review?${formData.toString()}`);
   }
@@ -431,18 +434,34 @@ export function RegistrationForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email Address</FormLabel>
+                          <div className="relative flex-grow">
+                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                             <Input placeholder="you@example.com" {...field} className="pl-10" />
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </div>
+                 <div className="md:col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="contactNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Number</FormLabel>
                           <div className="flex flex-col sm:flex-row gap-2">
                              <div className="relative flex-grow">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <Input placeholder="you@example.com" {...field} disabled={otpSent || isEmailVerified} className="pl-10" />
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <Input placeholder="07XXXXXXXX" {...field} disabled={otpSent || isPhoneVerified} className="pl-10" />
                             </div>
-                            {!isEmailVerified && (
-                              <Button type="button" onClick={handleVerifyEmail} disabled={isVerifyingEmail || otpSent || !emailValue} className="bg-accent hover:bg-accent/90">
-                                {isVerifyingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isVerifyingEmail ? 'Sending...' : 'Verify Email'}
+                            {!isPhoneVerified && (
+                              <Button type="button" onClick={handleVerifyPhone} disabled={isVerifyingPhone || otpSent || !contactNoValue} className="bg-accent hover:bg-accent/90">
+                                {isVerifyingPhone && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isVerifyingPhone ? 'Sending...' : 'Verify Phone'}
                               </Button>
                             )}
-                             {isEmailVerified && <p className="flex items-center text-green-600 font-semibold"><CheckCircle className="mr-2"/> Verified</p>}
+                             {isPhoneVerified && <p className="flex items-center text-green-600 font-semibold"><CheckCircle className="mr-2"/> Verified</p>}
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -450,7 +469,7 @@ export function RegistrationForm() {
                     />
                     {otpSent && (
                         <div className="mt-4 p-4 border rounded-lg bg-secondary/50 animate-in fade-in-50 slide-in-from-top-5 duration-500">
-                            <p className="text-sm text-muted-foreground mb-2">Enter the 6-digit OTP sent to your email.</p>
+                            <p className="text-sm text-muted-foreground mb-2">Enter the 6-digit OTP sent to your mobile.</p>
                             <div className="flex gap-2">
                                 <Input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" maxLength={6}/>
                                 <Button type="button" onClick={handleVerifyOtp}>Verify OTP</Button>
@@ -551,7 +570,7 @@ export function RegistrationForm() {
                 </div>
             </div>
 
-            <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-lg" disabled={!isEmailVerified || form.formState.isSubmitting}>
+            <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-lg" disabled={!isPhoneVerified || form.formState.isSubmitting}>
               Review Details <ArrowRight className="ml-2" />
             </Button>
           </form>

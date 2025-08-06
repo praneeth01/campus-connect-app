@@ -16,6 +16,7 @@ import {
   Edit,
   CalendarIcon,
   CheckCircle,
+  Phone,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -132,12 +133,14 @@ export default function ReviewPage() {
                 <ReviewDetail label="Nationality" value={formData.nationality} icon={Flag} />
                 <ReviewDetail label="NIC Number" value={formData.nic} icon={KeyRound} />
                 <ReviewDetail label="Passport Number" value={formData.passport} icon={KeyRound} />
-                <div className="md:col-span-2 flex items-center gap-4">
-                    <Mail className="h-5 w-5 text-primary" />
+                <ReviewDetail label="Email Address" value={formData.email} icon={Mail} />
+
+                <div className="flex items-center gap-4">
+                    <Phone className="h-5 w-5 text-primary" />
                     <div>
-                        <p className="text-sm text-muted-foreground">Email Address</p>
+                        <p className="text-sm text-muted-foreground">Contact Number</p>
                         <div className="flex items-center gap-2">
-                            <p className="font-semibold">{formData.email}</p>
+                            <p className="font-semibold">{formData.contactNo}</p>
                             <span className="flex items-center text-sm text-green-600 font-medium">
                                 <CheckCircle className="h-4 w-4 mr-1"/> Verified
                             </span>
