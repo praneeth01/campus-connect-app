@@ -62,6 +62,7 @@ import { Logo } from "@/components/logo";
 
 const SALUTATIONS = ["Mr.", "Mrs.", "Miss", "Dr.", "Rev."];
 const CIVIL_STATUSES = ["Single", "Married", "Divorced", "Widowed"];
+const NATIONALITIES = ["Sri Lankan", "Foreigner"];
 const COURSES = [
     { id: "cde", name: "Certificate in Data Engineering", price: 25000 },
     { id: "cva", name: "Certificate in Visual Analytics", price: 25000 },
@@ -88,8 +89,7 @@ const formSchema = z
     }),
     civilStatus: z.string({ required_error: "Civil status is required." }),
     nationality: z
-      .string()
-      .min(2, { message: "Nationality must be at least 2 characters." }),
+      .string({ required_error: "Nationality is required." }),
     nic: z.string().min(1, { message: "NIC number is required." }),
     passport: z.string().optional(),
     email: z.string().email({ message: "Please enter a valid email address." }),
@@ -115,7 +115,7 @@ export function RegistrationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
-      nationality: "",
+      nationality: "Sri Lankan",
       nic: "",
       passport: "",
       email: "",
@@ -290,12 +290,14 @@ export function RegistrationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nationality</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                           <Flag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                           <Input placeholder="e.g. Sri Lankan" {...field} className="pl-10"/>
-                        </div>
-                      </FormControl>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                           <SelectTrigger><Flag className="mr-2" />{field.value || "Select Nationality"}</SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {NATIONALITIES.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
