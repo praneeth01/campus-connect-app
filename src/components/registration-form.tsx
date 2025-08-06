@@ -63,11 +63,17 @@ import { useToast } from "@/hooks/use-toast";
 const SALUTATIONS = ["Mr.", "Mrs.", "Miss", "Dr.", "Rev."];
 const CIVIL_STATUSES = ["Single", "Married", "Divorced", "Widowed"];
 const COURSES = [
-  { id: "cs101", name: "Introduction to Computer Science", price: 15000 },
-  { id: "ma202", name: "Advanced Mathematics", price: 18000 },
-  { id: "ph301", name: "Quantum Physics", price: 22000 },
-  { id: "en101", name: "English Literature", price: 12000 },
-  { id: "ba205", name: "Business Administration", price: 20000 },
+    { id: "cde", name: "Certificate in Data Engineering", price: 25000 },
+    { id: "cva", name: "Certificate in Visual Analytics", price: 25000 },
+    { id: "ccse", name: "Certificate in Cyber Security Essentials", price: 25000 },
+    { id: "deal", name: "Data Engineering Associate Level", price: 50000 },
+    { id: "vaal", name: "Visual Analytics Associate Level", price: 50000 },
+    { id: "csal", name: "Cyber Security Associate Level", price: 50000 },
+    { id: "depl", name: "Data Engineering Professional Level", price: 75000 },
+    { id: "vapl", name: "Visual Analytics Professional Level", price: 75000 },
+    { id: "cspl", name: "Cyber Security Professional Level", price: 75000 },
+    { id: "fdp", name: "Freshers Development Program", price: 100000 },
+    { id: "csdp", name: "Corporate Stream Development Program", price: 120000 },
 ];
 
 const formSchema = z
