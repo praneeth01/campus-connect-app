@@ -90,19 +90,15 @@ const formSchema = z
     nationality: z
       .string()
       .min(2, { message: "Nationality must be at least 2 characters." }),
-    nic: z.string().optional(),
+    nic: z.string().min(1, { message: "NIC number is required." }),
     passport: z.string().optional(),
     email: z.string().email({ message: "Please enter a valid email address." }),
-    photo: z.any().optional(),
+    photo: z.any().refine((files) => files?.length == 1, 'Photograph is required.'),
     courses: z
       .array(z.string())
       .refine((value) => value.some((item) => item), {
         message: "You have to select at least one course.",
       }),
-  })
-  .refine((data) => data.nic || data.passport, {
-    message: "Either NIC or Passport number is required",
-    path: ["nic"],
   });
 
 export function RegistrationForm() {
@@ -332,6 +328,9 @@ export function RegistrationForm() {
                             <Input placeholder="Passport Number" {...field} className="pl-10"/>
                          </div>
                       </FormControl>
+                       <FormDescription>
+                        (Optional)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
