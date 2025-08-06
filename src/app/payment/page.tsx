@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -18,7 +19,16 @@ export default function PaymentPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isProcessing, setIsProcessing] = React.useState(false);
+    const [totalCost, setTotalCost] = React.useState(0);
     const paymentUrl = searchParams.get('paymentUrl');
+
+     React.useEffect(() => {
+        if (paymentUrl) {
+            const url = new URL(decodeURIComponent(paymentUrl));
+            const amount = url.searchParams.get('amount');
+            setTotalCost(Number(amount) || 0);
+        }
+    }, [paymentUrl]);
 
     const handlePayNow = () => {
         if (paymentUrl) {
@@ -57,6 +67,14 @@ export default function PaymentPage() {
                     </Button>
                      {!paymentUrl && <p className="text-sm text-destructive mt-4">Could not find payment information. Please go back and try again.</p>}
                 </CardContent>
+                 {totalCost > 0 && (
+                    <CardFooter className="bg-muted/50 p-6 rounded-b-lg mt-6">
+                        <div className="w-full flex justify-between items-center">
+                            <h3 className="text-xl font-bold font-headline">Total Amount:</h3>
+                            <p className="text-3xl font-bold text-primary">LKR {totalCost.toLocaleString()}</p>
+                        </div>
+                    </CardFooter>
+                )}
             </Card>
         </div>
     );
