@@ -171,17 +171,7 @@ export function RegistrationForm() {
   return (
     <Card className="w-full shadow-2xl transition-all duration-500 hover:shadow-primary/20">
       <CardHeader>
-        <div className="flex items-center gap-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 200 100">
-            <g transform="translate(0, 0)">
-              <polygon points="0,50 50,0 50,25 25,50 50,75 50,100" style={{fill: "hsl(var(--primary))"}} />
-              <polygon points="55,0 105,0 105,100 55,100 55,75 80,75 80,25 55,25" style={{fill: "hsl(var(--accent))"}} />
-            </g>
-          </svg>
-            <div>
-                <CardDescription className="text-2xl font-bold">Student Registration Portal</CardDescription>
-            </div>
-        </div>
+        <CardTitle className="text-3xl font-bold text-center">Student Registration Portal</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
