@@ -18,6 +18,7 @@ import {
   Loader2,
   CheckCircle,
   Phone,
+  Lock,
 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -98,12 +99,17 @@ const formSchema = z
     passport: z.string().optional(),
     email: z.string().email({ message: "Please enter a valid email address." }),
     contactNo: z.string().min(10, { message: "Please enter a valid contact number." }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters." }),
+    confirmPassword: z.string(),
     photo: z.any().refine((files) => files?.length == 1, 'Photograph is required.'),
     courses: z
       .array(z.string())
       .refine((value) => value.some((item) => item), {
         message: "You have to select at least one course.",
       }),
+  }).refine(data => data.password === data.confirmPassword, {
+      message: "Passwords do not match.",
+      path: ["confirmPassword"],
   });
 
 export function RegistrationForm() {
@@ -130,6 +136,8 @@ export function RegistrationForm() {
       passport: "",
       email: "",
       contactNo: "",
+      password: "",
+      confirmPassword: "",
       courses: [],
     },
   });
@@ -244,10 +252,20 @@ export function RegistrationForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // In a real app, you'd save the user to a database here.
+    // For this demo, we'll store it in localStorage.
+    // NOTE: This is not secure for a real application.
+    try {
+        localStorage.setItem(`user_${values.nic}`, JSON.stringify(values));
+    } catch (e) {
+        console.error("Could not save user data to local storage", e);
+    }
+
+
     const formData = new URLSearchParams();
     
     Object.entries(values).forEach(([key, value]) => {
-        if (key === 'photo') return;
+        if (key === 'photo' || key === 'password' || key === 'confirmPassword') return;
         if (value) {
             if (Array.isArray(value)) {
                 formData.append(key, value.join(','));
@@ -407,7 +425,7 @@ export function RegistrationForm() {
                   name="nic"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>NIC Number</FormLabel>
+                      <FormLabel>NIC Number (Username)</FormLabel>
                       <FormControl>
                          <div className="relative">
                             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -487,6 +505,38 @@ export function RegistrationForm() {
                         </div>
                     )}
                 </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                         <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input type="password" placeholder="********" {...field} className="pl-10"/>
+                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                         <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input type="password" placeholder="********" {...field} className="pl-10"/>
+                         </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 
@@ -595,3 +645,5 @@ export function RegistrationForm() {
     </Card>
   );
 }
+
+    
