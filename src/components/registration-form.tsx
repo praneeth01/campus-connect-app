@@ -81,7 +81,7 @@ const COURSES = [
 
 const formSchema = z
   .object({
-    salutation: z.string({ required_error: "Salutation is required." }),
+    salutation: z.string().min(1, { message: "Salutation is required." }),
     fullName: z
       .string()
       .min(3, { message: "Full name must be at least 3 characters." }),
@@ -112,7 +112,7 @@ export function RegistrationForm() {
   const [totalCost, setTotalCost] = React.useState(0);
   const [isVerifyingEmail, setIsVerifyingEmail] = React.useState(false);
   const [otpSent, setOtpSent] = React.useState(false);
-  const [isEmailVerified, setIsEmailVerified] = React.useState(true); // Default to true for easy testing, was false
+  const [isEmailVerified, setIsEmailVerified] = React.useState(false);
   const [otp, setOtp] = React.useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -130,10 +130,19 @@ export function RegistrationForm() {
     },
   });
 
+  const emailValue = form.watch('email');
+
+  React.useEffect(() => {
+    // Reset verification status if email changes
+    setIsEmailVerified(false);
+    setOtpSent(false);
+  }, [emailValue]);
+
   React.useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     if (params.has('fullName')) {
         const values: any = {};
+        let isVerifiedFromParams = false;
         params.forEach((value, key) => {
             if (key === 'dob' && value) {
                 values[key] = new Date(value);
@@ -141,6 +150,8 @@ export function RegistrationForm() {
                 values[key] = value.split(',');
             } else if (key === 'photo' && value) {
                 // don't set photo from params as it's a file object
+            } else if (key === 'isEmailVerified') {
+                isVerifiedFromParams = value === 'true';
             }
             else {
                 values[key] = value;
@@ -150,6 +161,9 @@ export function RegistrationForm() {
             setPhotoPreview(params.get('photo'));
         }
         form.reset(values);
+        if (isVerifiedFromParams) {
+          setIsEmailVerified(true);
+        }
     }
   }, [searchParams, form]);
 
@@ -214,6 +228,7 @@ export function RegistrationForm() {
     if (photoPreview) {
         formData.append('photo', photoPreview);
     }
+    formData.append('isEmailVerified', 'true');
 
     router.push(`/review?${formData.toString()}`);
   }
@@ -403,7 +418,7 @@ export function RegistrationForm() {
                                 <Input placeholder="you@example.com" {...field} disabled={otpSent || isEmailVerified} className="pl-10" />
                             </div>
                             {!isEmailVerified && (
-                              <Button type="button" onClick={handleVerifyEmail} disabled={isVerifyingEmail || otpSent} className="bg-accent hover:bg-accent/90">
+                              <Button type="button" onClick={handleVerifyEmail} disabled={isVerifyingEmail || otpSent || !emailValue} className="bg-accent hover:bg-accent/90">
                                 {isVerifyingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isVerifyingEmail ? 'Sending...' : 'Verify Email'}
                               </Button>
