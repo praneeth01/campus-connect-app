@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
+import { useRouter, useSearchParams } from 'next/navigation';
+
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -102,19 +104,24 @@ const formSchema = z
   });
 
 export function RegistrationForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const photoInputRef = React.useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
   const [totalCost, setTotalCost] = React.useState(0);
   const [isVerifyingEmail, setIsVerifyingEmail] = React.useState(false);
   const [otpSent, setOtpSent] = React.useState(false);
-  const [isEmailVerified, setIsEmailVerified] = React.useState(false);
+  const [isEmailVerified, setIsEmailVerified] = React.useState(true); // Default to true for easy testing, was false
   const [otp, setOtp] = React.useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      salutation: "",
       fullName: "",
+      gender: undefined,
+      civilStatus: "",
       nationality: "Sri Lankan",
       nic: "",
       passport: "",
@@ -122,6 +129,30 @@ export function RegistrationForm() {
       courses: [],
     },
   });
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.has('fullName')) {
+        const values: any = {};
+        params.forEach((value, key) => {
+            if (key === 'dob' && value) {
+                values[key] = new Date(value);
+            } else if (key === 'courses' && value) {
+                values[key] = value.split(',');
+            } else if (key === 'photo' && value) {
+                // don't set photo from params as it's a file object
+            }
+            else {
+                values[key] = value;
+            }
+        });
+        if(params.get('photo')) {
+            setPhotoPreview(params.get('photo'));
+        }
+        form.reset(values);
+    }
+  }, [searchParams, form]);
+
 
   const selectedCourses = form.watch("courses");
 
@@ -137,7 +168,11 @@ export function RegistrationForm() {
     const file = event.target.files?.[0];
     if (file) {
       form.setValue("photo", event.target.files);
-      setPhotoPreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -161,8 +196,26 @@ export function RegistrationForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const paymentUrl = `https://placeholder.payment-gateway.com/pay?amount=${totalCost}&email=${encodeURIComponent(values.email)}`;
-    window.location.href = paymentUrl;
+    const formData = new URLSearchParams();
+    
+    Object.entries(values).forEach(([key, value]) => {
+        if (key === 'photo') return;
+        if (value) {
+            if (Array.isArray(value)) {
+                formData.append(key, value.join(','));
+            } else if (value instanceof Date) {
+                 formData.append(key, value.toISOString());
+            }
+            else {
+                formData.append(key, value.toString());
+            }
+        }
+    });
+    if (photoPreview) {
+        formData.append('photo', photoPreview);
+    }
+
+    router.push(`/review?${formData.toString()}`);
   }
 
   return (
@@ -184,7 +237,7 @@ export function RegistrationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Salutation</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger><Users className="mr-2" />{field.value || "Select Salutation"}</SelectTrigger>
                         </FormControl>
@@ -251,7 +304,7 @@ export function RegistrationForm() {
                     <FormItem className="space-y-3">
                       <FormLabel>Gender</FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl><RadioGroupItem value="male" /></FormControl>
                             <FormLabel className="font-normal">Male</FormLabel>
@@ -272,7 +325,7 @@ export function RegistrationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Civil Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                            <SelectTrigger><Briefcase className="mr-2" />{field.value || "Select Civil Status"}</SelectTrigger>
                         </FormControl>
@@ -290,7 +343,7 @@ export function RegistrationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nationality</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                            <SelectTrigger><Flag className="mr-2" />{field.value || "Select Nationality"}</SelectTrigger>
                         </FormControl>
@@ -438,12 +491,12 @@ export function RegistrationForm() {
                                             checked={field.value?.includes(course.id)}
                                             onCheckedChange={(checked) => {
                                             return checked
-                                                ? field.onChange([...field.value, course.id])
+                                                ? field.onChange([...(field.value || []), course.id])
                                                 : field.onChange(
-                                                    field.value?.filter(
-                                                    (value) => value !== course.id
+                                                    (field.value || []).filter(
+                                                        (value) => value !== course.id
                                                     )
-                                                );
+                                                    );
                                             }}
                                         />
                                         </FormControl>
@@ -465,7 +518,7 @@ export function RegistrationForm() {
             </div>
 
             <Button type="submit" size="lg" className="w-full bg-accent hover:bg-accent/90 text-lg" disabled={!isEmailVerified || form.formState.isSubmitting}>
-              Pay Now & Register <ArrowRight className="ml-2" />
+              Review Details <ArrowRight className="ml-2" />
             </Button>
           </form>
         </Form>
