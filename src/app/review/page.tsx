@@ -75,9 +75,15 @@ export default function ReviewPage() {
     });
     setFormData(data);
 
-    if (data.photo) {
-        setPhotoPreview(data.photo);
+    try {
+        const storedPhoto = sessionStorage.getItem('photoPreview');
+        if (storedPhoto) {
+            setPhotoPreview(storedPhoto);
+        }
+    } catch (e) {
+        console.error("Could not get photo from session storage", e);
     }
+    
 
     const newTotal = (data.courses || []).reduce((acc: number, courseId: string) => {
         const course = COURSES.find((c) => c.id === courseId);

@@ -148,7 +148,7 @@ export function RegistrationForm() {
                 values[key] = new Date(value);
             } else if (key === 'courses' && value) {
                 values[key] = value.split(',');
-            } else if (key === 'photo' && value) {
+            } else if (key === 'photo') {
                 // don't set photo from params as it's a file object
             } else if (key === 'isEmailVerified') {
                 isVerifiedFromParams = value === 'true';
@@ -157,9 +157,23 @@ export function RegistrationForm() {
                 values[key] = value;
             }
         });
-        if(params.get('photo')) {
-            setPhotoPreview(params.get('photo'));
+        
+        try {
+            const storedPhoto = sessionStorage.getItem('photoPreview');
+            if(storedPhoto) {
+                setPhotoPreview(storedPhoto);
+                 // We need to set a value for the photo field in the form
+                // to satisfy the validation, even though we're not using the file object directly.
+                // A dummy file object or a simple truthy value would work.
+                const dataTransfer = new DataTransfer();
+                const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' });
+                dataTransfer.items.add(file);
+                values['photo'] = dataTransfer.files;
+            }
+        } catch(e) {
+            console.error("Could not get photo from session storage", e)
         }
+        
         form.reset(values);
         if (isVerifiedFromParams) {
           setIsEmailVerified(true);
@@ -184,7 +198,14 @@ export function RegistrationForm() {
       form.setValue("photo", event.target.files);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
+        const result = reader.result as string;
+        setPhotoPreview(result);
+        try {
+            sessionStorage.setItem('photoPreview', result);
+        } catch(e) {
+            console.error("Could not save photo to session storage", e);
+             toast({ title: "Error", description: "Could not save photo. It might be too large.", variant: "destructive" });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -225,9 +246,7 @@ export function RegistrationForm() {
             }
         }
     });
-    if (photoPreview) {
-        formData.append('photo', photoPreview);
-    }
+
     formData.append('isEmailVerified', 'true');
 
     router.push(`/review?${formData.toString()}`);
