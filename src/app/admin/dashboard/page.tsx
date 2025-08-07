@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield } from 'lucide-react';
+import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,11 +24,35 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/logo';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+
+const COURSES = [
+    { id: "cde", name: "Certificate in Data Engineering" },
+    { id: "cva", name: "Certificate in Visual Analytics" },
+    { id: "ccse", name: "Certificate in Cyber Security Essentials" },
+    { id: "deal", name: "Data Engineering Associate Level" },
+    { id: "vaal", name: "Visual Analytics Associate Level" },
+    { id: "csal", name: "Cyber Security Associate Level" },
+    { id: "depl", name: "Data Engineering Professional Level" },
+    { id: "vapl", name: "Visual Analytics Professional Level" },
+    { id: "cspl", name: "Cyber Security Professional Level" },
+    { id: "fdp", name: "Freshers Development Program" },
+    { id: "csdp", name: "Corporate Stream Development Program" },
+];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [students, setStudents] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [filteredStudents, setFilteredStudents] = React.useState<any[]>([]);
+  const [courseFilter, setCourseFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
     try {
@@ -49,12 +74,21 @@ export default function AdminDashboardPage() {
         }
       }
       setStudents(registeredStudents);
+      setFilteredStudents(registeredStudents);
     } catch (e) {
       console.error("Could not get user data from storage", e);
     } finally {
       setIsLoading(false);
     }
   }, [router]);
+
+  React.useEffect(() => {
+    if (courseFilter === "all") {
+      setFilteredStudents(students);
+    } else {
+      setFilteredStudents(students.filter(student => student.courses.includes(courseFilter)));
+    }
+  }, [courseFilter, students]);
 
   const handleLogout = () => {
     try {
@@ -98,10 +132,28 @@ export default function AdminDashboardPage() {
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Registered Students ({students.length})</CardTitle>
-            <CardDescription>
-              This is a list of all students who have registered through the portal.
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <CardTitle>Registered Students ({filteredStudents.length})</CardTitle>
+                    <CardDescription>
+                    This is a list of all students who have registered through the portal.
+                    </CardDescription>
+                </div>
+                <div className="w-full sm:w-64">
+                    <Select value={courseFilter} onValueChange={setCourseFilter}>
+                        <SelectTrigger>
+                            <BookOpen className="mr-2"/>
+                            <SelectValue placeholder="Filter by course..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Courses</SelectItem>
+                            {COURSES.map(course => (
+                                <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -115,8 +167,8 @@ export default function AdminDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.length > 0 ? (
-                  students.map((student) => (
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => (
                     <TableRow key={student.nic}>
                       <TableCell>
                         <div className="flex items-center gap-4">
@@ -160,7 +212,7 @@ export default function AdminDashboardPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center h-24">
-                      No students have registered yet.
+                      No students found for the selected filter.
                     </TableCell>
                   </TableRow>
                 )}
