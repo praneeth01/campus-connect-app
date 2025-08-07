@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen } from 'lucide-react';
+import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen, CheckCircle, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 
 const COURSES = [
@@ -49,13 +50,16 @@ const COURSES = [
 
 export default function LecturerDashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [students, setStudents] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [filteredStudents, setFilteredStudents] = React.useState<any[]>([]);
   const [courseFilter, setCourseFilter] = React.useState<string>("all");
 
-  React.useEffect(() => {
-    try {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const fetchStudents = React.useCallback(() => {
+     try {
       const isLecturer = sessionStorage.getItem('isLecturerLoggedIn');
       if (!isLecturer) {
         router.push('/lecturer/login');
@@ -69,18 +73,26 @@ export default function LecturerDashboardPage() {
         if (key && key.startsWith('user_')) {
           const studentData = localStorage.getItem(key);
           if (studentData) {
-            registeredStudents.push(JSON.parse(studentData));
+            const student = JSON.parse(studentData);
+            // Initialize attendance if it doesn't exist
+            if (!student.attendance) {
+                student.attendance = [];
+            }
+            registeredStudents.push(student);
           }
         }
       }
       setStudents(registeredStudents);
-      setFilteredStudents(registeredStudents);
     } catch (e) {
       console.error("Could not get user data from storage", e);
     } finally {
       setIsLoading(false);
     }
   }, [router]);
+
+  React.useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
   React.useEffect(() => {
     if (courseFilter === "all") {
@@ -98,6 +110,45 @@ export default function LecturerDashboardPage() {
     }
     router.push('/lecturer/login');
   };
+
+  const handleMarkAttendance = (studentNic: string, status: 'present' | 'absent') => {
+    try {
+        const studentToUpdate = students.find(s => s.nic === studentNic);
+        if (studentToUpdate) {
+            const todayAttendanceIndex = studentToUpdate.attendance.findIndex((att: any) => att.date === today);
+
+            let updatedAttendance;
+            if (todayAttendanceIndex > -1) {
+                // Update existing entry for today
+                updatedAttendance = [...studentToUpdate.attendance];
+                updatedAttendance[todayAttendanceIndex] = { date: today, status };
+            } else {
+                // Add new entry for today
+                updatedAttendance = [...studentToUpdate.attendance, { date: today, status }];
+            }
+
+            const updatedStudent = { ...studentToUpdate, attendance: updatedAttendance };
+
+            localStorage.setItem(`user_${studentNic}`, JSON.stringify(updatedStudent));
+
+            // Optimistically update the local state to re-render the UI
+            setStudents(prevStudents => prevStudents.map(s => s.nic === studentNic ? updatedStudent : s));
+
+            toast({
+                title: 'Success',
+                description: `Marked ${studentToUpdate.fullName} as ${status} for today.`,
+            });
+        }
+    } catch (e) {
+        console.error("Error marking attendance", e);
+        toast({ title: "Error", description: "Failed to mark attendance.", variant: "destructive" });
+    }
+  };
+
+  const getAttendanceStatusForToday = (student: any): 'present' | 'absent' | 'unmarked' => {
+      const todayAttendance = student.attendance.find((att: any) => att.date === today);
+      return todayAttendance ? todayAttendance.status : 'unmarked';
+  }
 
   if (isLoading) {
     return (
@@ -136,7 +187,7 @@ export default function LecturerDashboardPage() {
                 <div>
                     <CardTitle>Enrolled Students ({filteredStudents.length})</CardTitle>
                     <CardDescription>
-                    This is a read-only list of all enrolled students.
+                      View students and mark attendance for today ({new Date().toLocaleDateString()}).
                     </CardDescription>
                 </div>
                 <div className="w-full sm:w-64">
@@ -161,13 +212,15 @@ export default function LecturerDashboardPage() {
                 <TableRow>
                   <TableHead>Student</TableHead>
                   <TableHead>Contact Info</TableHead>
-                  <TableHead>NIC / Username</TableHead>
                   <TableHead>Courses</TableHead>
+                  <TableHead className="text-center">Attendance for Today</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
+                  filteredStudents.map((student) => {
+                    const attendanceStatus = getAttendanceStatusForToday(student);
+                    return (
                     <TableRow key={student.nic}>
                       <TableCell>
                         <div className="flex items-center gap-4">
@@ -176,7 +229,7 @@ export default function LecturerDashboardPage() {
                           </Avatar>
                           <div>
                             <p className="font-medium">{student.fullName}</p>
-                            <p className="text-sm text-muted-foreground">{student.salutation}</p>
+                            <p className="text-sm text-muted-foreground">{student.nic}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -190,12 +243,6 @@ export default function LecturerDashboardPage() {
                            <span>{student.contactNo}</span>
                          </div>
                       </TableCell>
-                       <TableCell>
-                          <div className="flex items-center gap-2">
-                            <KeyRound className="h-4 w-4 text-muted-foreground"/>
-                            <span>{student.nic}</span>
-                          </div>
-                      </TableCell>
                       <TableCell>
                          <div className="flex flex-wrap gap-1">
                             {student.courses.map((courseId: string) => (
@@ -203,8 +250,31 @@ export default function LecturerDashboardPage() {
                             ))}
                          </div>
                       </TableCell>
+                       <TableCell className="text-center">
+                            <div className="flex justify-center items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant={attendanceStatus === 'present' ? 'default' : 'outline'}
+                                    onClick={() => handleMarkAttendance(student.nic, 'present')}
+                                >
+                                    <CheckCircle className="mr-2"/> Present
+                                </Button>
+                                 <Button
+                                    size="sm"
+                                    variant={attendanceStatus === 'absent' ? 'destructive' : 'outline'}
+                                    onClick={() => handleMarkAttendance(student.nic, 'absent')}
+                                >
+                                     <XCircle className="mr-2"/> Absent
+                                </Button>
+                            </div>
+                            {attendanceStatus !== 'unmarked' && (
+                                <Badge variant={attendanceStatus === 'present' ? 'default' : 'destructive'} className="mt-2">
+                                    Status: {attendanceStatus}
+                                </Badge>
+                            )}
+                       </TableCell>
                     </TableRow>
-                  ))
+                  )})
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center h-24">

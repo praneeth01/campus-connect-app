@@ -51,6 +51,7 @@ import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, { message: 'Current password is required.' }),
@@ -82,7 +83,15 @@ export default function DashboardPage() {
         const loggedInUser = sessionStorage.getItem('loggedInUser');
         const storedPhoto = sessionStorage.getItem('photoPreview');
         if (loggedInUser) {
-            setStudent(JSON.parse(loggedInUser));
+            // Fetch the latest student data from localStorage to get attendance updates
+            const userJson = JSON.parse(loggedInUser);
+            const latestData = localStorage.getItem(`user_${userJson.nic}`);
+            if (latestData) {
+              setStudent(JSON.parse(latestData));
+            } else {
+              setStudent(userJson);
+            }
+
              if (storedPhoto) {
                 setPhotoPreview(storedPhoto);
             }
@@ -171,6 +180,14 @@ export default function DashboardPage() {
         }
     }, 1500);
   };
+  
+  const calculateAttendance = () => {
+      if (!student || !student.attendance || student.attendance.length === 0) {
+          return 0;
+      }
+      const presentDays = student.attendance.filter((a: any) => a.status === 'present').length;
+      return (presentDays / student.attendance.length) * 100;
+  };
 
   if (!student) {
     return (
@@ -181,13 +198,14 @@ export default function DashboardPage() {
     );
   }
   
+  const attendancePercentage = calculateAttendance();
+  
   // Sample Data
   const sampleData = {
       batch: 'Data Engineering - DE24-1',
       room: 'Room 302',
       nextClass: { date: '2024-08-10T10:00:00', topic: 'Advanced SQL' },
       instructor: 'Dr. Evelyn Reed',
-      attendance: 85.7,
       assignments: [
           { id: 1, title: 'SQL Query Optimization', due: '2024-08-15', status: 'Submitted', grade: 'A' },
           { id: 2, title: 'Data Warehouse Design', due: '2024-08-22', status: 'Pending', grade: null },
@@ -345,11 +363,9 @@ export default function DashboardPage() {
                             <div>
                                 <div className="flex justify-between items-center mb-1">
                                     <p className="font-semibold">Overall Attendance</p>
-                                    <p className="font-bold text-primary">{sampleData.attendance}%</p>
+                                    <p className="font-bold text-primary">{attendancePercentage.toFixed(1)}%</p>
                                 </div>
-                                 <div className="w-full bg-muted rounded-full h-2.5">
-                                    <div className="bg-primary h-2.5 rounded-full" style={{ width: `${sampleData.attendance}%` }}></div>
-                                </div>
+                                 <Progress value={attendancePercentage} className="h-2.5" />
                                 <Button variant="link" className="p-0 h-auto mt-1">View Details</Button>
                             </div>
                              <Separator />
