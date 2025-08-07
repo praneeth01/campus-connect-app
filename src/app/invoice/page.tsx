@@ -85,7 +85,13 @@ export default function InvoicePage() {
                             <div>
                                 <Logo />
                                 <p className="text-muted-foreground mt-2">
-                                    No. 123, Galle Road, Colombo 03, Sri Lanka
+                                    No 203A, Highlevel Road, Kirulapone, Sri Lanka
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    +94 112 512 520 | +94 776 015 053
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    info@stateraxtech.com
                                 </p>
                             </div>
                             <div className="text-right">
