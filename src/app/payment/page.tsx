@@ -20,22 +20,29 @@ export default function PaymentPage() {
     const searchParams = useSearchParams();
     const [isProcessing, setIsProcessing] = React.useState(false);
     const [totalCost, setTotalCost] = React.useState(0);
-    const paymentUrl = searchParams.get('paymentUrl');
+    const [formData, setFormData] = React.useState<any>(null);
 
      React.useEffect(() => {
-        if (paymentUrl) {
-            const url = new URL(decodeURIComponent(paymentUrl));
-            const amount = url.searchParams.get('amount');
-            setTotalCost(Number(amount) || 0);
+        try {
+            const dataString = sessionStorage.getItem('registrationFormData');
+            if (dataString) {
+                const data = JSON.parse(dataString);
+                setFormData(data);
+                setTotalCost(data.totalCost || 0);
+            }
+        } catch (e) {
+            console.error('Failed to read form data from session storage', e);
         }
-    }, [paymentUrl]);
+    }, []);
 
     const handlePayNow = () => {
-        if (paymentUrl) {
+        if (formData) {
             setIsProcessing(true);
             // Simulate API call to payment gateway
             setTimeout(() => {
-                 window.location.href = decodeURIComponent(paymentUrl);
+                 // In a real app, you would get a success confirmation from the gateway.
+                 // We will just redirect to the invoice page.
+                 router.push(`/invoice`);
             }, 2000);
         }
     };
@@ -52,7 +59,7 @@ export default function PaymentPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={handlePayNow} size="lg" className="w-full text-lg" disabled={!paymentUrl || isProcessing}>
+                    <Button onClick={handlePayNow} size="lg" className="w-full text-lg" disabled={!formData || isProcessing}>
                         {isProcessing ? (
                             <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -65,7 +72,7 @@ export default function PaymentPage() {
                             </>
                         )}
                     </Button>
-                     {!paymentUrl && <p className="text-sm text-destructive mt-4">Could not find payment information. Please go back and try again.</p>}
+                     {!formData && <p className="text-sm text-destructive mt-4">Could not find payment information. Please go back and try again.</p>}
                 </CardContent>
                  {totalCost > 0 && (
                     <CardFooter className="bg-muted/50 p-6 rounded-b-lg mt-6">

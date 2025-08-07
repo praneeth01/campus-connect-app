@@ -100,8 +100,20 @@ export default function ReviewPage() {
   };
 
   const handleConfirmAndRegister = () => {
-     const paymentUrl = `https://placeholder.payment-gateway.com/pay?amount=${totalCost}&email=${encodeURIComponent(formData.email)}`;
-     router.push(`/payment?paymentUrl=${encodeURIComponent(paymentUrl)}`);
+    try {
+        const dataToStore = {
+            ...formData,
+            totalCost,
+            courses: (formData.courses || []).map((courseId: string) => {
+                return COURSES.find(c => c.id === courseId) || { id: courseId, name: 'Unknown Course', price: 0 };
+            }),
+            paymentDate: new Date().toISOString(),
+        };
+        sessionStorage.setItem('registrationFormData', JSON.stringify(dataToStore));
+    } catch(e) {
+        console.error("Could not save registration data to session storage", e);
+    }
+    router.push(`/payment`);
   };
 
   if (!formData.fullName) {
