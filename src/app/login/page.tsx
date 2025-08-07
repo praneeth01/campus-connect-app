@@ -55,6 +55,15 @@ export default function LoginPage() {
         const storedUser = localStorage.getItem(`user_${values.nic}`);
         if (storedUser) {
           const user = JSON.parse(storedUser);
+           if (user.status === 'disabled') {
+            toast({
+              title: 'Account Disabled',
+              description: 'Your account has been disabled. Please contact an administrator.',
+              variant: 'destructive',
+            });
+            setIsLoggingIn(false);
+            return;
+          }
           if (user.password === values.password) {
             toast({
               title: 'Login Successful',

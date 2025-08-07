@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -49,24 +50,50 @@ export default function LecturerLoginPage() {
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     setIsLoggingIn(true);
     
-    // For this demo, we'll use hardcoded credentials.
-    const isLecturer = values.username === 'lecturer' && values.password === 'password';
-
     setTimeout(() => {
-      if (isLecturer) {
-        toast({
-          title: 'Lecturer Login Successful',
-          description: 'Redirecting to the lecturer dashboard...',
-        });
-        sessionStorage.setItem('isLecturerLoggedIn', 'true');
-        router.push('/lecturer/dashboard');
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Invalid lecturer credentials.',
-          variant: 'destructive',
-        });
-        setIsLoggingIn(false);
+      try {
+        const storedLecturer = localStorage.getItem(`lecturer_${values.username}`);
+        if (storedLecturer) {
+          const lecturer = JSON.parse(storedLecturer);
+          if (lecturer.status === 'disabled') {
+            toast({
+              title: 'Account Disabled',
+              description: 'Your account has been disabled. Please contact an administrator.',
+              variant: 'destructive',
+            });
+            setIsLoggingIn(false);
+            return;
+          }
+          if (lecturer.password === values.password) {
+            toast({
+              title: 'Lecturer Login Successful',
+              description: 'Redirecting to the lecturer dashboard...',
+            });
+            sessionStorage.setItem('isLecturerLoggedIn', 'true');
+            router.push('/lecturer/dashboard');
+          } else {
+             toast({
+              title: 'Error',
+              description: 'Invalid lecturer credentials.',
+              variant: 'destructive',
+            });
+            setIsLoggingIn(false);
+          }
+        } else {
+            toast({
+              title: 'Error',
+              description: 'Invalid lecturer credentials.',
+              variant: 'destructive',
+            });
+            setIsLoggingIn(false);
+        }
+      } catch (e) {
+          toast({
+              title: 'Error',
+              description: 'An error occurred during login.',
+              variant: 'destructive',
+            });
+            setIsLoggingIn(false);
       }
     }, 1500);
   };
@@ -94,7 +121,7 @@ export default function LecturerLoginPage() {
                       <div className="relative">
                         <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          placeholder="lecturer"
+                          placeholder="lecturer.username"
                           {...field}
                           className="pl-10"
                         />

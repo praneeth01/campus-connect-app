@@ -55,6 +55,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const lecturerSchema = z.object({
   username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
@@ -112,12 +114,21 @@ export default function AdminDashboardPage() {
             if (key.startsWith('user_')) {
                 const studentData = localStorage.getItem(key);
                 if (studentData) {
-                    registeredStudents.push(JSON.parse(studentData));
+                    const student = JSON.parse(studentData);
+                    // Ensure status exists
+                    if (!student.hasOwnProperty('status')) {
+                        student.status = 'active';
+                    }
+                    registeredStudents.push(student);
                 }
             } else if (key.startsWith('lecturer_')) {
                 const lecturerData = localStorage.getItem(key);
                 if (lecturerData) {
-                    createdLecturers.push(JSON.parse(lecturerData));
+                    const lecturer = JSON.parse(lecturerData);
+                    if (!lecturer.hasOwnProperty('status')) {
+                        lecturer.status = 'active';
+                    }
+                    createdLecturers.push(lecturer);
                 }
             }
         }
@@ -156,7 +167,8 @@ export default function AdminDashboardPage() {
 
         const updatedStudents = students.filter(s => s.nic !== studentToDelete.nic);
         setStudents(updatedStudents);
-        setFilteredStudents(updatedStudents); // This will be re-filtered by the useEffect
+        // setFilteredStudents is handled by the useEffect
+        toast({ title: "Success", description: `Student account "${studentToDelete.fullName}" has been deleted.` });
 
     } catch (e) {
         console.error("Error deleting student data", e);
@@ -182,20 +194,54 @@ export default function AdminDashboardPage() {
 
   const onLecturerCreate = (values: z.infer<typeof lecturerSchema>) => {
       try {
-        // Check if lecturer already exists
         if(localStorage.getItem(`lecturer_${values.username}`)) {
             toast({ title: "Error", description: "A lecturer with this username already exists.", variant: "destructive" });
             return;
         }
 
-        localStorage.setItem(`lecturer_${values.username}`, JSON.stringify(values));
-        setLecturers([...lecturers, values]);
+        const newLecturer = { ...values, status: 'active' };
+        localStorage.setItem(`lecturer_${values.username}`, JSON.stringify(newLecturer));
+        setLecturers([...lecturers, newLecturer]);
         toast({ title: "Success", description: `Lecturer account "${values.username}" created successfully.` });
         form.reset();
       } catch (e) {
         console.error("Error creating lecturer account", e);
         toast({ title: "Error", description: "An error occurred while creating the account.", variant: "destructive" });
       }
+  };
+
+  const toggleStudentStatus = (studentNic: string) => {
+    try {
+        const student = students.find(s => s.nic === studentNic);
+        if (student) {
+            const newStatus = student.status === 'active' ? 'disabled' : 'active';
+            const updatedStudent = { ...student, status: newStatus };
+
+            localStorage.setItem(`user_${studentNic}`, JSON.stringify(updatedStudent));
+
+            const updatedStudents = students.map(s => s.nic === studentNic ? updatedStudent : s);
+            setStudents(updatedStudents);
+        }
+    } catch (e) {
+        console.error("Error toggling student status", e);
+    }
+  };
+
+  const toggleLecturerStatus = (lecturerUsername: string) => {
+     try {
+        const lecturer = lecturers.find(l => l.username === lecturerUsername);
+        if (lecturer) {
+            const newStatus = lecturer.status === 'active' ? 'disabled' : 'active';
+            const updatedLecturer = { ...lecturer, status: newStatus };
+
+            localStorage.setItem(`lecturer_${lecturerUsername}`, JSON.stringify(updatedLecturer));
+
+            const updatedLecturers = lecturers.map(l => l.username === lecturerUsername ? updatedLecturer : l);
+            setLecturers(updatedLecturers);
+        }
+    } catch (e) {
+        console.error("Error toggling lecturer status", e);
+    }
   };
 
 
@@ -297,15 +343,15 @@ export default function AdminDashboardPage() {
                         <TableRow>
                         <TableHead>Student</TableHead>
                         <TableHead>Contact Info</TableHead>
-                        <TableHead>NIC / Username</TableHead>
                         <TableHead>Courses</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
-                            <TableRow key={student.nic}>
+                            <TableRow key={student.nic} className={student.status === 'disabled' ? 'opacity-50' : ''}>
                             <TableCell>
                                 <div className="flex items-center gap-4">
                                 <Avatar>
@@ -313,7 +359,7 @@ export default function AdminDashboardPage() {
                                 </Avatar>
                                 <div>
                                     <p className="font-medium">{student.fullName}</p>
-                                    <p className="text-sm text-muted-foreground">{student.salutation}</p>
+                                    <p className="text-sm text-muted-foreground">{student.nic}</p>
                                 </div>
                                 </div>
                             </TableCell>
@@ -328,21 +374,25 @@ export default function AdminDashboardPage() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <KeyRound className="h-4 w-4 text-muted-foreground"/>
-                                    <span>{student.nic}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
                                 <div className="flex flex-wrap gap-1">
                                     {student.courses.map((courseId: string) => (
                                     <Badge key={courseId} variant="secondary">{courseId.toUpperCase()}</Badge>
                                     ))}
                                 </div>
                             </TableCell>
+                             <TableCell>
+                                <Badge variant={student.status === 'active' ? 'default' : 'destructive'}>{student.status}</Badge>
+                             </TableCell>
                             <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                    <Button variant="outline" size="sm">Edit Details</Button>
+                                <div className="flex items-center justify-end gap-4">
+                                     <div className="flex items-center space-x-2">
+                                        <Switch 
+                                            id={`student-status-${student.nic}`} 
+                                            checked={student.status === 'active'}
+                                            onCheckedChange={() => toggleStudentStatus(student.nic)}
+                                        />
+                                        <Label htmlFor={`student-status-${student.nic}`}>{student.status === 'active' ? 'Enabled' : 'Disabled'}</Label>
+                                    </div>
                                     <Button variant="destructive" size="icon" onClick={() => setStudentToDelete(student)}>
                                         <Trash2 className="h-4 w-4"/>
                                         <span className="sr-only">Delete</span>
@@ -415,16 +465,23 @@ export default function AdminDashboardPage() {
                              <div className="space-y-2">
                                 {lecturers.length > 0 ? (
                                     lecturers.map(lecturer => (
-                                        <div key={lecturer.username} className="flex items-center justify-between p-2 border rounded-md">
+                                        <div key={lecturer.username} className={`flex items-center justify-between p-2 border rounded-md ${lecturer.status === 'disabled' ? 'opacity-50' : ''}`}>
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="h-8 w-8">
                                                     <AvatarFallback>{lecturer.username[0].toUpperCase()}</AvatarFallback>
                                                 </Avatar>
                                                 <span className="font-medium text-sm">{lecturer.username}</span>
                                             </div>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setLecturerToDelete(lecturer)}>
-                                                <Trash2 className="h-4 w-4"/>
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    id={`lecturer-status-${lecturer.username}`}
+                                                    checked={lecturer.status === 'active'}
+                                                    onCheckedChange={() => toggleLecturerStatus(lecturer.username)}
+                                                />
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setLecturerToDelete(lecturer)}>
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
@@ -440,5 +497,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
