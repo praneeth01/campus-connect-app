@@ -252,20 +252,10 @@ export function RegistrationForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you'd save the user to a database here.
-    // For this demo, we'll store it in localStorage.
-    // NOTE: This is not secure for a real application.
-    try {
-        localStorage.setItem(`user_${values.nic}`, JSON.stringify(values));
-    } catch (e) {
-        console.error("Could not save user data to local storage", e);
-    }
-
-
     const formData = new URLSearchParams();
     
     Object.entries(values).forEach(([key, value]) => {
-        if (key === 'photo' || key === 'password' || key === 'confirmPassword') return;
+        if (key === 'photo' || key === 'confirmPassword') return;
         if (value) {
             if (Array.isArray(value)) {
                 formData.append(key, value.join(','));

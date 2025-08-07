@@ -101,6 +101,10 @@ export default function ReviewPage() {
 
   const handleConfirmAndRegister = () => {
     try {
+        // Save the complete user object to localStorage so they can log in.
+        // NOTE: In a real app, this would be a secure database operation.
+        localStorage.setItem(`user_${formData.nic}`, JSON.stringify(formData));
+
         const dataToStore = {
             ...formData,
             totalCost,
@@ -111,7 +115,7 @@ export default function ReviewPage() {
         };
         sessionStorage.setItem('registrationFormData', JSON.stringify(dataToStore));
     } catch(e) {
-        console.error("Could not save registration data to session storage", e);
+        console.error("Could not save registration data", e);
     }
     router.push(`/payment`);
   };
