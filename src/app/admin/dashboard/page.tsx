@@ -3,9 +3,20 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen } from 'lucide-react';
+import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   Card,
   CardContent,
@@ -53,6 +64,7 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [filteredStudents, setFilteredStudents] = React.useState<any[]>([]);
   const [courseFilter, setCourseFilter] = React.useState<string>("all");
+  const [studentToDelete, setStudentToDelete] = React.useState<any | null>(null);
 
   React.useEffect(() => {
     try {
@@ -98,6 +110,29 @@ export default function AdminDashboardPage() {
     }
     router.push('/admin/login');
   };
+  
+  const handleDeleteStudent = () => {
+    if (!studentToDelete) return;
+    try {
+        localStorage.removeItem(`user_${studentToDelete.nic}`);
+
+        const updatedStudents = students.filter(s => s.nic !== studentToDelete.nic);
+        setStudents(updatedStudents);
+        
+        // This will trigger the useEffect to refilter
+        if (courseFilter === "all") {
+            setFilteredStudents(updatedStudents);
+        } else {
+            setFilteredStudents(updatedStudents.filter(student => student.courses.includes(courseFilter)));
+        }
+
+    } catch (e) {
+        console.error("Error deleting student data", e);
+    } finally {
+        setStudentToDelete(null);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -130,6 +165,24 @@ export default function AdminDashboardPage() {
       </header>
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
+         <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the student account
+                    for <span className="font-bold">{studentToDelete?.fullName}</span> and remove their data from our servers.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive hover:bg-destructive/90">
+                    Yes, delete student
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -205,7 +258,13 @@ export default function AdminDashboardPage() {
                          </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm">Edit Details</Button>
+                         <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm">Edit Details</Button>
+                            <Button variant="destructive" size="icon" onClick={() => setStudentToDelete(student)}>
+                                <Trash2 className="h-4 w-4"/>
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                         </div>
                       </TableCell>
                     </TableRow>
                   ))
