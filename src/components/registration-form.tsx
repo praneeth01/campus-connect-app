@@ -252,6 +252,34 @@ export function RegistrationForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('user_')) {
+          const storedUser = localStorage.getItem(key);
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            if (user.nic === values.nic) {
+              toast({ title: "Error", description: "A student with this NIC number is already registered.", variant: "destructive" });
+              return;
+            }
+            if (user.email === values.email) {
+              toast({ title: "Error", description: "A student with this email address is already registered.", variant: "destructive" });
+              return;
+            }
+            if (user.contactNo === values.contactNo) {
+              toast({ title: "Error", description: "A student with this contact number is already registered.", variant: "destructive" });
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error checking for duplicate users", e);
+      toast({ title: "Error", description: "An error occurred while checking for existing users.", variant: "destructive" });
+      return;
+    }
+
     const formData = new URLSearchParams();
     
     Object.entries(values).forEach(([key, value]) => {
