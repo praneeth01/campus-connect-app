@@ -3,7 +3,10 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen, Trash2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { LogOut, User, Users, Mail, Phone, KeyRound, Loader2, Shield, BookOpen, Trash2, PlusCircle, Lock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +18,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
   Card,
@@ -32,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/logo';
 import {
@@ -42,6 +44,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
+
+const lecturerSchema = z.object({
+  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
 
 
 const COURSES = [
@@ -60,11 +78,22 @@ const COURSES = [
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [students, setStudents] = React.useState<any[]>([]);
+  const [lecturers, setLecturers] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [filteredStudents, setFilteredStudents] = React.useState<any[]>([]);
   const [courseFilter, setCourseFilter] = React.useState<string>("all");
   const [studentToDelete, setStudentToDelete] = React.useState<any | null>(null);
+  const [lecturerToDelete, setLecturerToDelete] = React.useState<any | null>(null);
+
+  const form = useForm<z.infer<typeof lecturerSchema>>({
+    resolver: zodResolver(lecturerSchema),
+    defaultValues: {
+      username: '',
+      password: '',
+    },
+  });
 
   React.useEffect(() => {
     try {
@@ -74,19 +103,28 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      // Retrieve all student data from localStorage
+      // Retrieve all student and lecturer data from localStorage
       const registeredStudents = [];
+      const createdLecturers = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('user_')) {
-          const studentData = localStorage.getItem(key);
-          if (studentData) {
-            registeredStudents.push(JSON.parse(studentData));
-          }
+        if (key) {
+            if (key.startsWith('user_')) {
+                const studentData = localStorage.getItem(key);
+                if (studentData) {
+                    registeredStudents.push(JSON.parse(studentData));
+                }
+            } else if (key.startsWith('lecturer_')) {
+                const lecturerData = localStorage.getItem(key);
+                if (lecturerData) {
+                    createdLecturers.push(JSON.parse(lecturerData));
+                }
+            }
         }
       }
       setStudents(registeredStudents);
       setFilteredStudents(registeredStudents);
+      setLecturers(createdLecturers);
     } catch (e) {
       console.error("Could not get user data from storage", e);
     } finally {
@@ -118,19 +156,46 @@ export default function AdminDashboardPage() {
 
         const updatedStudents = students.filter(s => s.nic !== studentToDelete.nic);
         setStudents(updatedStudents);
-        
-        // This will trigger the useEffect to refilter
-        if (courseFilter === "all") {
-            setFilteredStudents(updatedStudents);
-        } else {
-            setFilteredStudents(updatedStudents.filter(student => student.courses.includes(courseFilter)));
-        }
+        setFilteredStudents(updatedStudents); // This will be re-filtered by the useEffect
 
     } catch (e) {
         console.error("Error deleting student data", e);
     } finally {
         setStudentToDelete(null);
     }
+  };
+
+  const handleDeleteLecturer = () => {
+    if (!lecturerToDelete) return;
+    try {
+        localStorage.removeItem(`lecturer_${lecturerToDelete.username}`);
+        const updatedLecturers = lecturers.filter(l => l.username !== lecturerToDelete.username);
+        setLecturers(updatedLecturers);
+        toast({ title: "Success", description: `Lecturer account "${lecturerToDelete.username}" has been deleted.` });
+    } catch (e) {
+        console.error("Error deleting lecturer data", e);
+        toast({ title: "Error", description: "Failed to delete lecturer account.", variant: "destructive" });
+    } finally {
+        setLecturerToDelete(null);
+    }
+  };
+
+  const onLecturerCreate = (values: z.infer<typeof lecturerSchema>) => {
+      try {
+        // Check if lecturer already exists
+        if(localStorage.getItem(`lecturer_${values.username}`)) {
+            toast({ title: "Error", description: "A lecturer with this username already exists.", variant: "destructive" });
+            return;
+        }
+
+        localStorage.setItem(`lecturer_${values.username}`, JSON.stringify(values));
+        setLecturers([...lecturers, values]);
+        toast({ title: "Success", description: `Lecturer account "${values.username}" created successfully.` });
+        form.reset();
+      } catch (e) {
+        console.error("Error creating lecturer account", e);
+        toast({ title: "Error", description: "An error occurred while creating the account.", variant: "destructive" });
+      }
   };
 
 
@@ -164,7 +229,7 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 grid gap-8">
          <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -182,104 +247,198 @@ export default function AdminDashboardPage() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog open={!!lecturerToDelete} onOpenChange={(open) => !open && setLecturerToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Delete Lecturer Account?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the lecturer account for <span className="font-bold">{lecturerToDelete?.username}</span>. They will no longer be able to log in.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteLecturer} className="bg-destructive hover:bg-destructive/90">
+                    Yes, delete account
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <CardTitle>Registered Students ({filteredStudents.length})</CardTitle>
-                    <CardDescription>
-                    This is a list of all students who have registered through the portal.
-                    </CardDescription>
-                </div>
-                <div className="w-full sm:w-64">
-                    <Select value={courseFilter} onValueChange={setCourseFilter}>
-                        <SelectTrigger>
-                            <BookOpen className="mr-2"/>
-                            <SelectValue placeholder="Filter by course..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Courses</SelectItem>
-                            {COURSES.map(course => (
-                                <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Contact Info</TableHead>
-                  <TableHead>NIC / Username</TableHead>
-                  <TableHead>Courses</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
-                    <TableRow key={student.nic}>
-                      <TableCell>
-                        <div className="flex items-center gap-4">
-                          <Avatar>
-                            <AvatarFallback>{student.fullName?.[0]}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{student.fullName}</p>
-                            <p className="text-sm text-muted-foreground">{student.salutation}</p>
-                          </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+                <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <CardTitle>Registered Students ({filteredStudents.length})</CardTitle>
+                            <CardDescription>
+                            View and manage all registered student accounts.
+                            </CardDescription>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex items-center gap-2">
-                           <Mail className="h-4 w-4 text-muted-foreground"/>
-                           <span>{student.email}</span>
-                         </div>
-                         <div className="flex items-center gap-2">
-                           <Phone className="h-4 w-4 text-muted-foreground"/>
-                           <span>{student.contactNo}</span>
-                         </div>
-                      </TableCell>
-                       <TableCell>
-                          <div className="flex items-center gap-2">
-                            <KeyRound className="h-4 w-4 text-muted-foreground"/>
-                            <span>{student.nic}</span>
-                          </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex flex-wrap gap-1">
-                            {student.courses.map((courseId: string) => (
-                               <Badge key={courseId} variant="secondary">{courseId.toUpperCase()}</Badge>
-                            ))}
-                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                         <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm">Edit Details</Button>
-                            <Button variant="destructive" size="icon" onClick={() => setStudentToDelete(student)}>
-                                <Trash2 className="h-4 w-4"/>
-                                <span className="sr-only">Delete</span>
-                            </Button>
-                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
-                      No students found for the selected filter.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                        <div className="w-full sm:w-64">
+                            <Select value={courseFilter} onValueChange={setCourseFilter}>
+                                <SelectTrigger>
+                                    <BookOpen className="mr-2"/>
+                                    <SelectValue placeholder="Filter by course..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Courses</SelectItem>
+                                    {COURSES.map(course => (
+                                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Contact Info</TableHead>
+                        <TableHead>NIC / Username</TableHead>
+                        <TableHead>Courses</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredStudents.length > 0 ? (
+                        filteredStudents.map((student) => (
+                            <TableRow key={student.nic}>
+                            <TableCell>
+                                <div className="flex items-center gap-4">
+                                <Avatar>
+                                    <AvatarFallback>{student.fullName?.[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-medium">{student.fullName}</p>
+                                    <p className="text-sm text-muted-foreground">{student.salutation}</p>
+                                </div>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-muted-foreground"/>
+                                <span>{student.email}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground"/>
+                                <span>{student.contactNo}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                    <KeyRound className="h-4 w-4 text-muted-foreground"/>
+                                    <span>{student.nic}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                    {student.courses.map((courseId: string) => (
+                                    <Badge key={courseId} variant="secondary">{courseId.toUpperCase()}</Badge>
+                                    ))}
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                    <Button variant="outline" size="sm">Edit Details</Button>
+                                    <Button variant="destructive" size="icon" onClick={() => setStudentToDelete(student)}>
+                                        <Trash2 className="h-4 w-4"/>
+                                        <span className="sr-only">Delete</span>
+                                    </Button>
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                        ) : (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center h-24">
+                            No students found for the selected filter.
+                            </TableCell>
+                        </TableRow>
+                        )}
+                    </TableBody>
+                    </Table>
+                </CardContent>
+                </Card>
+            </div>
+            <div>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Lecturer Management</CardTitle>
+                        <CardDescription>Create and manage lecturer accounts.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onLecturerCreate)} className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="username"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Lecturer Username</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                                <Input placeholder="e.g., john.doe" {...field} className="pl-10"/>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Password</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                                <Input type="password" placeholder="********" {...field} className="pl-10"/>
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" className="w-full">
+                                    <PlusCircle className="mr-2"/> Create Lecturer
+                                </Button>
+                            </form>
+                        </Form>
+                        <Separator />
+                        <div>
+                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Existing Lecturers ({lecturers.length})</h4>
+                             <div className="space-y-2">
+                                {lecturers.length > 0 ? (
+                                    lecturers.map(lecturer => (
+                                        <div key={lecturer.username} className="flex items-center justify-between p-2 border rounded-md">
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback>{lecturer.username[0].toUpperCase()}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-medium text-sm">{lecturer.username}</span>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setLecturerToDelete(lecturer)}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">No lecturer accounts created yet.</p>
+                                )}
+                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       </main>
     </div>
   );
 }
+
+    
