@@ -57,10 +57,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 const lecturerSchema = z.object({
   username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  courses: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "You have to select at least one course for the lecturer.",
+  }),
 });
 
 
@@ -94,6 +99,7 @@ export default function AdminDashboardPage() {
     defaultValues: {
       username: '',
       password: '',
+      courses: [],
     },
   });
 
@@ -127,6 +133,9 @@ export default function AdminDashboardPage() {
                     const lecturer = JSON.parse(lecturerData);
                     if (!lecturer.hasOwnProperty('status')) {
                         lecturer.status = 'active';
+                    }
+                     if (!lecturer.hasOwnProperty('courses')) {
+                        lecturer.courses = [];
                     }
                     createdLecturers.push(lecturer);
                 }
@@ -454,6 +463,46 @@ export default function AdminDashboardPage() {
                                     </FormItem>
                                     )}
                                 />
+                                 <FormField
+                                    control={form.control}
+                                    name="courses"
+                                    render={() => (
+                                        <FormItem>
+                                            <FormLabel>Assign Courses</FormLabel>
+                                            <div className="space-y-2 p-2 border rounded-md max-h-40 overflow-y-auto">
+                                                {COURSES.map((course) => (
+                                                    <FormField
+                                                    key={course.id}
+                                                    control={form.control}
+                                                    name="courses"
+                                                    render={({ field }) => {
+                                                        return (
+                                                        <FormItem key={course.id} className="flex flex-row items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(course.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), course.id])
+                                                                    : field.onChange(
+                                                                        (field.value || []).filter(
+                                                                            (value) => value !== course.id
+                                                                        )
+                                                                        );
+                                                                }}
+                                                            />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal text-sm">{course.name}</FormLabel>
+                                                        </FormItem>
+                                                        );
+                                                    }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
                                 <Button type="submit" className="w-full">
                                     <PlusCircle className="mr-2"/> Create Lecturer
                                 </Button>
@@ -465,21 +514,30 @@ export default function AdminDashboardPage() {
                              <div className="space-y-2">
                                 {lecturers.length > 0 ? (
                                     lecturers.map(lecturer => (
-                                        <div key={lecturer.username} className={`flex items-center justify-between p-2 border rounded-md ${lecturer.status === 'disabled' ? 'opacity-50' : ''}`}>
-                                            <div className="flex items-center gap-2">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarFallback>{lecturer.username[0].toUpperCase()}</AvatarFallback>
-                                                </Avatar>
-                                                <span className="font-medium text-sm">{lecturer.username}</span>
+                                        <div key={lecturer.username} className={`flex items-start justify-between p-3 border rounded-md ${lecturer.status === 'disabled' ? 'opacity-50' : ''}`}>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarFallback>{lecturer.username[0].toUpperCase()}</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-medium text-sm">{lecturer.username}</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1 mt-2">
+                                                    {lecturer.courses?.map((courseId: string) => (
+                                                        <Badge key={courseId} variant="outline" className="text-xs">{courseId.toUpperCase()}</Badge>
+                                                    ))}
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Switch
                                                     id={`lecturer-status-${lecturer.username}`}
                                                     checked={lecturer.status === 'active'}
                                                     onCheckedChange={() => toggleLecturerStatus(lecturer.username)}
+                                                    aria-label={`Toggle status for ${lecturer.username}`}
                                                 />
                                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setLecturerToDelete(lecturer)}>
                                                     <Trash2 className="h-4 w-4"/>
+                                                     <span className="sr-only">Delete {lecturer.username}</span>
                                                 </Button>
                                             </div>
                                         </div>

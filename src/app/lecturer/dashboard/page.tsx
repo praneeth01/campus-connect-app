@@ -51,6 +51,7 @@ const COURSES = [
 export default function LecturerDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [lecturer, setLecturer] = React.useState<any>(null);
   const [students, setStudents] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [filteredStudents, setFilteredStudents] = React.useState<any[]>([]);
@@ -58,41 +59,43 @@ export default function LecturerDashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-  const fetchStudents = React.useCallback(() => {
+  React.useEffect(() => {
      try {
-      const isLecturer = sessionStorage.getItem('isLecturerLoggedIn');
-      if (!isLecturer) {
+      const loggedInLecturer = sessionStorage.getItem('loggedInLecturer');
+      if (!loggedInLecturer) {
         router.push('/lecturer/login');
         return;
       }
+      const lecturerData = JSON.parse(loggedInLecturer);
+      setLecturer(lecturerData);
 
       // Retrieve all student data from localStorage
-      const registeredStudents = [];
+      const allStudents = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('user_')) {
           const studentData = localStorage.getItem(key);
           if (studentData) {
             const student = JSON.parse(studentData);
-            // Initialize attendance if it doesn't exist
-            if (!student.attendance) {
-                student.attendance = [];
+            
+            // Check if student is active and enrolled in one of the lecturer's courses
+             if (student.status === 'active' && student.courses.some((courseId: string) => lecturerData.courses.includes(courseId))) {
+                 // Initialize attendance if it doesn't exist
+                if (!student.attendance) {
+                    student.attendance = [];
+                }
+                allStudents.push(student);
             }
-            registeredStudents.push(student);
           }
         }
       }
-      setStudents(registeredStudents);
+      setStudents(allStudents);
     } catch (e) {
       console.error("Could not get user data from storage", e);
     } finally {
       setIsLoading(false);
     }
   }, [router]);
-
-  React.useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
 
   React.useEffect(() => {
     if (courseFilter === "all") {
@@ -104,7 +107,7 @@ export default function LecturerDashboardPage() {
 
   const handleLogout = () => {
     try {
-      sessionStorage.removeItem('isLecturerLoggedIn');
+      sessionStorage.removeItem('loggedInLecturer');
     } catch (e) {
       console.error("Could not clear session storage", e);
     }
@@ -150,7 +153,13 @@ export default function LecturerDashboardPage() {
       return todayAttendance ? todayAttendance.status : 'unmarked';
   }
 
-  if (isLoading) {
+  const getLecturerCourses = () => {
+      if (!lecturer || !lecturer.courses) return [];
+      return COURSES.filter(course => lecturer.courses.includes(course.id));
+  };
+
+
+  if (isLoading || !lecturer) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -168,10 +177,10 @@ export default function LecturerDashboardPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="font-semibold text-lg">Lecturer</p>
+            <p className="font-semibold text-lg">{lecturer.username}</p>
           </div>
           <Avatar className="h-12 w-12">
-            <AvatarFallback>L</AvatarFallback>
+            <AvatarFallback>{lecturer.username[0].toUpperCase()}</AvatarFallback>
           </Avatar>
           <Button variant="outline" size="icon" onClick={handleLogout}>
             <LogOut className="h-5 w-5" />
@@ -185,20 +194,20 @@ export default function LecturerDashboardPage() {
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <CardTitle>Enrolled Students ({filteredStudents.length})</CardTitle>
+                    <CardTitle>My Students ({filteredStudents.length})</CardTitle>
                     <CardDescription>
-                      View students and mark attendance for today ({new Date().toLocaleDateString()}).
+                      View your students and mark attendance for today ({new Date().toLocaleDateString()}).
                     </CardDescription>
                 </div>
                 <div className="w-full sm:w-64">
                     <Select value={courseFilter} onValueChange={setCourseFilter}>
                         <SelectTrigger>
                             <BookOpen className="mr-2"/>
-                            <SelectValue placeholder="Filter by course..." />
+                            <SelectValue placeholder="Filter by your courses..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Courses</SelectItem>
-                            {COURSES.map(course => (
+                            <SelectItem value="all">All My Courses</SelectItem>
+                            {getLecturerCourses().map(course => (
                                 <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -278,7 +287,7 @@ export default function LecturerDashboardPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center h-24">
-                      No students found for the selected filter.
+                      No students found for your assigned courses.
                     </TableCell>
                   </TableRow>
                 )}

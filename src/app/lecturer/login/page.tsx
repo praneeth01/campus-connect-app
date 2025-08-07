@@ -69,7 +69,7 @@ export default function LecturerLoginPage() {
               title: 'Lecturer Login Successful',
               description: 'Redirecting to the lecturer dashboard...',
             });
-            sessionStorage.setItem('isLecturerLoggedIn', 'true');
+            sessionStorage.setItem('loggedInLecturer', JSON.stringify(lecturer));
             router.push('/lecturer/dashboard');
           } else {
              toast({
