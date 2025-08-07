@@ -64,6 +64,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/logo";
 import { sendOtp } from "@/ai/flows/send-otp-flow";
+import { normalizeNic } from "@/lib/nic-normalizer";
 
 const SALUTATIONS = ["Mr.", "Mrs.", "Miss", "Dr.", "Rev."];
 const CIVIL_STATUSES = ["Single", "Married", "Divorced", "Widowed"];
@@ -219,7 +220,7 @@ export function RegistrationForm() {
              toast({ title: "Error", description: "Could not save photo. It might be too large.", variant: "destructive" });
         }
       };
-      reader.readAsDataURL(file);
+      reader.readDataURL(file);
     }
   };
 
@@ -253,13 +254,20 @@ export function RegistrationForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      const normalizedNic = normalizeNic(values.nic);
+      if (!normalizedNic) {
+        toast({ title: "Error", description: "Invalid NIC format. Please enter a valid 10-digit (with V) or 12-digit NIC.", variant: "destructive" });
+        return;
+      }
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('user_')) {
           const storedUser = localStorage.getItem(key);
           if (storedUser) {
             const user = JSON.parse(storedUser);
-            if (user.nic === values.nic) {
+            // The key is already the normalized NIC, so we check against that.
+            if (key === `user_${normalizedNic}`) {
               toast({ title: "Error", description: "A student with this NIC number is already registered.", variant: "destructive" });
               return;
             }
@@ -274,6 +282,10 @@ export function RegistrationForm() {
           }
         }
       }
+      
+      // Use the normalized NIC for the rest of the flow
+      values.nic = normalizedNic;
+
     } catch (e) {
       console.error("Error checking for duplicate users", e);
       toast({ title: "Error", description: "An error occurred while checking for existing users.", variant: "destructive" });
@@ -663,5 +675,3 @@ export function RegistrationForm() {
     </Card>
   );
 }
-
-    

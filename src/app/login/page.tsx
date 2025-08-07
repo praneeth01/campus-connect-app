@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { normalizeNic } from '@/lib/nic-normalizer';
 
 const loginSchema = z.object({
   nic: z.string().min(1, { message: 'NIC number is required.' }),
@@ -52,7 +53,18 @@ export default function LoginPage() {
     // Simulate API call for login
     setTimeout(() => {
       try {
-        const storedUser = localStorage.getItem(`user_${values.nic}`);
+        const normalizedNic = normalizeNic(values.nic);
+        if (!normalizedNic) {
+            toast({
+                title: "Error",
+                description: "Invalid NIC number format.",
+                variant: "destructive",
+            });
+            setIsLoggingIn(false);
+            return;
+        }
+
+        const storedUser = localStorage.getItem(`user_${normalizedNic}`);
         if (storedUser) {
           const user = JSON.parse(storedUser);
            if (user.status === 'disabled') {

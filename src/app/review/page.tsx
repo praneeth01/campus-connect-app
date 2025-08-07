@@ -95,14 +95,15 @@ export default function ReviewPage() {
   }, [searchParams]);
 
   const handleEdit = () => {
+    // When editing, we should send back the original NIC if it was entered that way
     const query = new URLSearchParams(formData).toString();
-    router.push(`/?${query}`);
+    router.push(`/?${query}&isEditing=true`);
   };
 
   const handleConfirmAndRegister = () => {
     try {
-        // Save the complete user object to localStorage so they can log in.
-        // NOTE: In a real app, this would be a secure database operation.
+        // The NIC in formData is already normalized from the previous step.
+        // We use this normalized NIC for the localStorage key.
         localStorage.setItem(`user_${formData.nic}`, JSON.stringify(formData));
 
         const dataToStore = {
