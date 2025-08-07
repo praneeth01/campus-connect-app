@@ -149,6 +149,11 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              <div className="text-right">
+                <Button asChild variant="link" className="p-0 h-auto">
+                    <Link href="/forgot-password">Forgot Password?</Link>
+                </Button>
+              </div>
               <Button type="submit" size="lg" className="w-full text-lg" disabled={isLoggingIn}>
                 {isLoggingIn ? (
                   <>
@@ -168,5 +173,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

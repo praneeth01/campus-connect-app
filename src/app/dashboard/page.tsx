@@ -4,13 +4,18 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   User,
   LogOut,
   BookOpen,
   CalendarDays,
   Clock,
-  Briefcase
+  Briefcase,
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -18,12 +23,23 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
 
 const COURSES = [
     { id: "cde", name: "Certificate in Data Engineering", price: 25000, duration: "3 Months", schedule: "Sat 9am - 1pm" },
@@ -39,10 +55,30 @@ const COURSES = [
     { id: "csdp", name: "Corporate Stream Development Program", price: 120000, duration: "12 Months", schedule: "Weekends" },
 ];
 
+const passwordSchema = z.object({
+    currentPassword: z.string().min(1, { message: 'Current password is required.' }),
+    newPassword: z.string().min(8, { message: 'New password must be at least 8 characters.' }),
+    confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "New passwords do not match.",
+    path: ["confirmPassword"],
+});
+
 export default function DashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [student, setStudent] = React.useState<any>(null);
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = React.useState(false);
+
+  const form = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
 
   React.useEffect(() => {
     try {
@@ -71,6 +107,44 @@ export default function DashboardPage() {
     }
     router.push('/login');
   };
+  
+  const onChangePassword = (values: z.infer<typeof passwordSchema>) => {
+    setIsUpdatingPassword(true);
+    // Simulate API call
+    setTimeout(() => {
+        try {
+            const storedUser = localStorage.getItem(`user_${student.nic}`);
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                if (user.password === values.currentPassword) {
+                    const updatedUser = { ...user, password: values.newPassword };
+                    localStorage.setItem(`user_${student.nic}`, JSON.stringify(updatedUser));
+                    sessionStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+                    toast({
+                        title: 'Success',
+                        description: 'Your password has been updated successfully.',
+                    });
+                    form.reset();
+                } else {
+                    toast({
+                        title: 'Error',
+                        description: 'Your current password is incorrect.',
+                        variant: 'destructive',
+                    });
+                }
+            }
+        } catch (e) {
+            toast({
+                title: 'Error',
+                description: 'An error occurred while changing your password.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUpdatingPassword(false);
+        }
+    }, 1500);
+  };
+
 
   if (!student) {
     return (
@@ -103,7 +177,7 @@ export default function DashboardPage() {
                  </div>
             </header>
 
-            <main>
+            <main className="grid gap-8">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-2xl"><BookOpen className="text-primary"/>My Enrolled Courses</CardTitle>
@@ -140,11 +214,70 @@ export default function DashboardPage() {
                         )}
                     </CardContent>
                 </Card>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-2xl"><Lock className="text-primary"/>Change Password</CardTitle>
+                        <CardDescription>Update your account password here.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onChangePassword)} className="space-y-6 max-w-md">
+                                <FormField
+                                    control={form.control}
+                                    name="currentPassword"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Current Password</FormLabel>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Enter your current password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="newPassword"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>New Password</FormLabel>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Enter a new password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="confirmPassword"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Confirm New Password</FormLabel>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Confirm your new password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" disabled={isUpdatingPassword}>
+                                    {isUpdatingPassword ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        'Update Password'
+                                    )}
+                                </Button>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
             </main>
         </div>
     </div>
   );
 }
-
-
-    
