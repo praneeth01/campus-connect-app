@@ -5,7 +5,7 @@ import { getAuth } from "firebase/auth";
 // Your web app's Firebase configuration
 const firebaseConfig = {
   projectId: "campusconnect-wbdi0",
-  appId: "1:623714764322:web:b1bf102eb44078bce02c7b",
+  appId: "1:623714764322:web:a3c76f0375a9e8cde02c7b",
   storageBucket: "campusconnect-wbdi0.firebasestorage.app",
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "campusconnect-wbdi0.firebaseapp.com",
