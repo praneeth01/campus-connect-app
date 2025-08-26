@@ -333,6 +333,18 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Receipt className="text-primary" />Payments & Invoices</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">View your payment history and outstanding invoices.</p>
+                            <Button asChild className="w-full">
+                                <Link href={`/invoice?nic=${student.nic}`}><Receipt className="mr-2"/> View Invoice</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
 
                      {/* Support & Contact */}
                     <Card>
