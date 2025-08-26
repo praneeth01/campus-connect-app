@@ -334,19 +334,6 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Payments Card */}
-                    <Card>
-                        <CardHeader>
-                             <CardTitle className="flex items-center gap-2"><Receipt className="text-primary"/>Payments</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center text-center">
-                            <p className="text-sm text-muted-foreground mb-4">You have outstanding fees for your selected courses.</p>
-                            <Button asChild className="w-full">
-                                <Link href={`/invoice?nic=${student.nic}`}>View Invoice & Pay</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
                      {/* Support & Contact */}
                     <Card>
                         <CardHeader>
