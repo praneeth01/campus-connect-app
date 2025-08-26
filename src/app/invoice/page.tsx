@@ -36,6 +36,7 @@ import {
   TableFooter as UiTableFooter,
 } from '@/components/ui/table';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 
 const COURSES = [
@@ -52,8 +53,7 @@ const COURSES = [
     { id: "csdp", name: "Corporate Stream Development Program", price: 120000 },
 ];
 
-
-export default function InvoicePage() {
+function InvoiceDisplay() {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -168,4 +168,18 @@ export default function InvoicePage() {
         </Card>
     </div>
   );
+}
+
+
+export default function InvoicePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen w-full flex-col items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Loading Page...</p>
+            </div>
+        }>
+            <InvoiceDisplay />
+        </Suspense>
+    )
 }
