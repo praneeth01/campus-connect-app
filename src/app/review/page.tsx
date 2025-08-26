@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Logo } from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
 
 const COURSES = [
     { id: "cde", name: "Certificate in Data Engineering", price: 25000 },
@@ -60,6 +61,7 @@ function ReviewDetail({ label, value, icon: Icon }: { label: string; value?: str
 
 export default function ReviewPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const [formData, setFormData] = React.useState<any>({});
   const [totalCost, setTotalCost] = React.useState(0);
@@ -105,20 +107,24 @@ export default function ReviewPage() {
         // The NIC in formData is already normalized from the previous step.
         // We use this normalized NIC for the localStorage key.
         localStorage.setItem(`user_${formData.nic}`, JSON.stringify(formData));
+        
+        toast({
+          title: "Registration Successful!",
+          description: "Your account has been created. Please log in.",
+        });
 
-        const dataToStore = {
-            ...formData,
-            totalCost,
-            courses: (formData.courses || []).map((courseId: string) => {
-                return COURSES.find(c => c.id === courseId) || { id: courseId, name: 'Unknown Course', price: 0 };
-            }),
-            paymentDate: new Date().toISOString(),
-        };
-        sessionStorage.setItem('registrationFormData', JSON.stringify(dataToStore));
+        // Clean up session storage used during registration
+        sessionStorage.removeItem('photoPreview');
     } catch(e) {
         console.error("Could not save registration data", e);
+        toast({
+          title: "Error",
+          description: "There was a problem saving your registration.",
+          variant: "destructive",
+        });
+        return;
     }
-    router.push(`/payment`);
+    router.push(`/login`);
   };
 
   if (!formData.fullName) {

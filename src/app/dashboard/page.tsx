@@ -114,36 +114,6 @@ export default function DashboardPage() {
     router.push('/login');
   };
   
-  const handleViewInvoice = () => {
-    try {
-        // Retrieve the full user object from localStorage, which includes invoice details
-        const storedUser = localStorage.getItem(`user_${student.nic}`);
-        if (storedUser) {
-            const userData = JSON.parse(storedUser);
-            
-            const courses = (userData.courses || []).map((courseId: string) => {
-              const courseDetails = COURSES.find(c => c.id === courseId);
-              return courseDetails || { id: courseId, name: 'Unknown Course', price: 0 };
-            });
-
-            const totalCost = courses.reduce((acc: number, course: any) => acc + (course.price || 0), 0);
-
-            const invoiceData = {
-                ...userData,
-                courses,
-                totalCost,
-                paymentDate: new Date().toISOString(),
-            };
-            sessionStorage.setItem('registrationFormData', JSON.stringify(invoiceData));
-            router.push('/invoice');
-        } else {
-            toast({ title: "Error", description: "Could not find invoice data.", variant: "destructive" });
-        }
-    } catch (e) {
-        console.error("Error preparing invoice data", e);
-        toast({ title: "Error", description: "An error occurred while preparing your invoice.", variant: "destructive" });
-    }
-  };
 
   const onChangePassword = (values: z.infer<typeof passwordSchema>) => {
     setIsUpdatingPassword(true);
@@ -386,18 +356,6 @@ export default function DashboardPage() {
                             <Award className="h-16 w-16 text-muted-foreground/50 mb-4"/>
                             <p className="font-semibold mb-1">No certificates yet</p>
                             <p className="text-sm text-muted-foreground">Your course completion certificates will appear here.</p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Billing & Payments */}
-                    <Card>
-                        <CardHeader>
-                             <CardTitle className="flex items-center gap-2"><Receipt className="text-primary"/>Billing & Payments</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <Button variant="outline" className="w-full" onClick={handleViewInvoice}>
-                                <Receipt className="mr-2"/> View Registration Invoice
-                           </Button>
                         </CardContent>
                     </Card>
 
