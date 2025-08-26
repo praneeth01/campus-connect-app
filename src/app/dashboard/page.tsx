@@ -52,6 +52,7 @@ import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import Link from 'next/link';
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, { message: 'Current password is required.' }),
@@ -194,20 +195,6 @@ export default function DashboardPage() {
       ]
   };
 
-  const COURSES = [
-    { id: "cde", name: "Certificate in Data Engineering", price: 25000 },
-    { id: "cva", name: "Certificate in Visual Analytics", price: 25000 },
-    { id: "ccse", name: "Certificate in Cyber Security Essentials", price: 25000 },
-    { id: "deal", name: "Data Engineering Associate Level", price: 50000 },
-    { id: "vaal", name: "Visual Analytics Associate Level", price: 50000 },
-    { id: "csal", name: "Cyber Security Associate Level", price: 50000 },
-    { id: "depl", name: "Data Engineering Professional Level", price: 75000 },
-    { id: "vapl", name: "Visual Analytics Professional Level", price: 75000 },
-    { id: "cspl", name: "Cyber Security Professional Level", price: 75000 },
-    { id: "fdp", name: "Freshers Development Program", price: 100000 },
-    { id: "csdp", name: "Corporate Stream Development Program", price: 120000 },
-];
-
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
@@ -347,15 +334,16 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Certificates */}
+                    {/* Payments Card */}
                     <Card>
                         <CardHeader>
-                             <CardTitle className="flex items-center gap-2"><Award className="text-primary"/>Certificates</CardTitle>
+                             <CardTitle className="flex items-center gap-2"><Receipt className="text-primary"/>Payments</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col items-center text-center">
-                            <Award className="h-16 w-16 text-muted-foreground/50 mb-4"/>
-                            <p className="font-semibold mb-1">No certificates yet</p>
-                            <p className="text-sm text-muted-foreground">Your course completion certificates will appear here.</p>
+                            <p className="text-sm text-muted-foreground mb-4">You have outstanding fees for your selected courses.</p>
+                            <Button asChild className="w-full">
+                                <Link href={`/invoice?nic=${student.nic}`}>View Invoice & Pay</Link>
+                            </Button>
                         </CardContent>
                     </Card>
 
